@@ -485,30 +485,9 @@ class Client(Methods):
 
     async def handle_updates(self, updates):
         if isinstance(updates, (raw.types.Updates, raw.types.UpdatesCombined)):
-            is_min = (await self.fetch_peers(updates.users)) or (await self.fetch_peers(updates.chats))
-
             users = {u.id: u for u in updates.users}
-            chats = {c.id: c for c in updates.chats}
 
-            for update in updates.updates:
-                channel_id = getattr(
-                    getattr(
-                        getattr(
-                            update, "message", None
-                        ), "peer_id", None
-                    ), "channel_id", None
-                ) or getattr(update, "channel_id", None)
-
-                pts = getattr(update, "pts", None)
-                pts_count = getattr(update, "pts_count", None)
-
-                if isinstance(update, raw.types.UpdateChannelTooLong):
-                    log.warning(update)
-
-                if isinstance(update, raw.types.UpdateNewChannelMessage) and is_min:
-                    message = update.message
-
-                self.dispatcher.updates_queue.put_nowait((update, users, chats))
+            self.dispatcher.updates_queue.put_nowait((update, users))
         elif isinstance(updates, (raw.types.UpdateShortMessage, raw.types.UpdateShortChatMessage)):
             diff = await self.invoke(
                 raw.functions.updates.GetDifference(
@@ -517,20 +496,8 @@ class Client(Methods):
                     qts=-1
                 )
             )
-
-            if diff.new_messages:
-                self.dispatcher.updates_queue.put_nowait((
-                    raw.types.UpdateNewMessage(
-                        message=diff.new_messages[0],
-                        pts=updates.pts,
-                        pts_count=updates.pts_count
-                    ),
-                    {u.id: u for u in diff.users},
-                    {c.id: c for c in diff.chats}
-                ))
-            else:
-                if diff.other_updates:  # The other_updates list can be empty
-                    self.dispatcher.updates_queue.put_nowait((diff.other_updates[0], {}, {}))
+            if diff.other_updates:  # The other_updates list can be empty
+                self.dispatcher.updates_queue.put_nowait((diff.other_updates[0], {}, {}))
         elif isinstance(updates, raw.types.UpdateShort):
             self.dispatcher.updates_queue.put_nowait((updates.update, {}, {}))
         elif isinstance(updates, raw.types.UpdatesTooLong):
