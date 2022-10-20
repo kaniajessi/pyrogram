@@ -508,28 +508,6 @@ class Client(Methods):
                 if isinstance(update, raw.types.UpdateNewChannelMessage) and is_min:
                     message = update.message
 
-                    if not isinstance(message, raw.types.MessageEmpty):
-                        try:
-                            diff = await self.invoke(
-                                raw.functions.updates.GetChannelDifference(
-                                    channel=await self.resolve_peer(utils.get_channel_id(channel_id)),
-                                    filter=raw.types.ChannelMessagesFilter(
-                                        ranges=[raw.types.MessageRange(
-                                            min_id=update.message.id,
-                                            max_id=update.message.id
-                                        )]
-                                    ),
-                                    pts=pts - pts_count,
-                                    limit=pts
-                                )
-                            )
-                        except ChannelPrivate:
-                            pass
-                        else:
-                            if not isinstance(diff, raw.types.updates.ChannelDifferenceEmpty):
-                                users.update({u.id: u for u in diff.users})
-                                chats.update({c.id: c for c in diff.chats})
-
                 self.dispatcher.updates_queue.put_nowait((update, users, chats))
         elif isinstance(updates, (raw.types.UpdateShortMessage, raw.types.UpdateShortChatMessage)):
             diff = await self.invoke(
