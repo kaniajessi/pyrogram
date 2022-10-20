@@ -340,7 +340,7 @@ class Session:
     async def invoke(
         self,
         query: TLObject,
-        retries: int = MAX_RETRIES,
+        retries: int = 0,
         timeout: float = WAIT_TIMEOUT,
         sleep_threshold: float = SLEEP_THRESHOLD
     ):
@@ -374,8 +374,8 @@ class Session:
                     raise e from None
 
                 (log.warning if retries < 2 else log.info)(
-                    f'[{Session.MAX_RETRIES - retries + 1}] Retrying "{query_name}" due to {str(e) or repr(e)}')
+                    f'[{self.client.name}] Retrying "{query_name}" due to {str(e) or repr(e)}')
 
                 await asyncio.sleep(0.5)
 
-                return await self.invoke(query, retries - 1, timeout)
+                return await self.invoke(query, retries, timeout)
